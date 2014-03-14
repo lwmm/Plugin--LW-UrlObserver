@@ -124,8 +124,9 @@ if (empty($result)) {
     $db->bindParameter("description", "s", "scan");
     $db->bindParameter("lw_first_date", "i", $date);
     $db->bindParameter("lw_last_date", "i", $date);
-    die($db->prepare());
+
     $result = $db->pdbquery();
+    $dailyMailWasSent = false;
 }
 
 $db->setStatement("SELECT * FROM t:lw_master WHERE lw_object = :lw_object AND description = :description ");
@@ -136,7 +137,7 @@ $result = $db->pselect1();
 $lastScan = $result["lw_last_date"];
 $day = substr($lastScan, 6, 2);
 
-if (date("d") > $day && date("H") > $hour && date("i") > $min) {
+if (date("d") > $day && date("H") > $hour && date("i") > $min && $dailyMailWasSent) {
     $dailyMailWasSent = false;
 }
 
@@ -163,7 +164,11 @@ foreach ($emails as $email => $groups) {
     $errString = "";
     $errosFound = false;
     foreach ($groups as $group) {
-        $errString.="Url-Gruppe: " . $observedElements[$group]["name"] . PHP_EOL . PHP_EOL;
+
+        if (isset($errors["errorReachableUrlIsNotReachable"][$group]) || isset($errors["errorNotReachableUrlIsReachable"][$group])) {
+            $errString.="Url-Gruppe: " . $observedElements[$group]["name"] . PHP_EOL . PHP_EOL;
+        }
+
         if (isset($errors["errorReachableUrlIsNotReachable"][$group])) {
             $errosFound = true;
             foreach ($errors["errorReachableUrlIsNotReachable"][$group] as $errUrl) {
@@ -181,11 +186,11 @@ foreach ($emails as $email => $groups) {
 
     if ($errosFound) {
         $content = "Es wurden folgende Fehler gefunden :" . PHP_EOL . PHP_EOL;
-        #mail($email, 'logicworks - Url Beobachtung', $header.$content.$errString."".PHP_EOL);
+        mail($email, 'logicworks - Url Beobachtung', $header.$content.$errString."".PHP_EOL);
     } else {
         $content = "Alles in Ordnung." . PHP_EOL . PHP_EOL;
         if (!$dailyMailWasSent) {
-            #mail($email, 'logicworks - Url Beobachtung', $header.$content.$errString."".PHP_EOL);
+            mail($email, 'logicworks - Url Beobachtung', $header.$content.$errString."".PHP_EOL);
         }
     }
 }
