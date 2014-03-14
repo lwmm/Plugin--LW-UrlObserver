@@ -1,0 +1,163 @@
+<?php if ($this->response > 0): ?>
+    <script>
+        $(document).ready(function() {
+    <?php
+    if ($this->response == 1) {
+        $message = "Ein neuer Empf&auml;nger wurde erfolgreich angelegt";
+    }
+    if ($this->response == 2) {
+        $message = "Empf&auml;nger wurde erfolgreich bearbeitet";
+    }
+    if ($this->response == 3) {
+        $message = "Empf&auml;nger wurde erfolgreich gel&ouml;scht";
+    }
+    ?>
+            var data = $('<div style="background-color:#B2EBFD;padding:10px;"><h3 style="color: #175D99;"><?php echo $message; ?></h3></div>');
+            var popup = $('<div id="popup" style="border:2px solid #175D99;">');
+            popup.append(data);
+            $('body').append(popup);
+            popup.css("position", "absolute");
+            popup.css("top", ($(window).height() - popup.height()) / 2 + $(window).scrollTop() + "px");
+            popup.css("left", ($(window).width() - popup.width()) / 2 + $(window).scrollLeft() + "px");
+            popup.hide();
+            popup.fadeIn(1000, 'linear');
+            popup.delay(1500);
+            popup.fadeOut(1000, 'linear');
+        });
+    </script>
+<?php endif; ?>
+    
+<script>
+    $(document).ready(function() {
+        var addEmail = "<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "EMailReciever", "gid" => $this->groupId, "cmd" => "addEntry")); ?>";
+        var editBaseEmail = "<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "EMailReciever", "gid" => $this->groupId, "cmd" => "saveEntry")) ?>";
+        
+        $(window).bind("resize", function() {
+            elementResize();
+        });
+        function elementResize() {
+            $("#email_Dialog").css("left", (($("#page-wrapper").width() / 2) - $("#email_Dialog").width() / 2));
+            $("#email_Dialog").css("top", (($("#page-wrapper").height() / 4) - $("#email_Dialog").height() / 2));
+        }
+        elementResize();
+        
+        $("#addEmail").click(function(){
+            $("#email_Dialog #email_form").attr("action", addEmail);
+            $("#email_Dialog #dialogTitle b").html("Neue E-Mail anlegen");
+            $("#email_Dialog #oldEmailName").hide();
+            $("#email_Dialog #newEmailName #email_").val("");
+            $("#email_Dialog").show();
+        });
+        
+        $(".editEmail").click(function(){
+            $("#email_Dialog #email_form").attr("action", editBaseEmail + "&id=" + parseInt($(this).closest("tr").find("td.email_id").html()));
+            $("#email_Dialog #dialogTitle b").html("Bestehende E-Mail bearbeiten");
+            $("#email_Dialog #oldEmailName p").html($(this).closest("tr").find("td.email_name").html());
+            $("#email_Dialog #newEmailName #email_").val($(this).closest("tr").find("td.email_name").html());
+            $("#email_Dialog #oldEmailName").show();
+            $("#email_Dialog").show();            
+        });
+        
+        <?php if (isset($this->errors)): ?>
+            <?php if($this->type == "add"): ?>
+                $("#addEmail").trigger("click");
+            <?php endif; ?>
+            <?php if($this->type == "edit"): ?>
+                $("#email_table tbody tr").each(function(){
+                    if(parseInt($(this).find('td.email_id').html()) === <?php echo $this->errors["id"]; ?>){
+                        $(this).find('a.editEmail').trigger("click");
+                    }
+                });
+            <?php endif; ?>
+        <?php endif; ?>
+    });
+</script>
+<style>
+    #email_Dialog{
+        position: absolute;
+        top: 200px;
+        left: 200px;
+        width: 600px;
+        display: none;
+    }
+    #email_Dialog div.panel-heading span.glyphicon{
+        float: right;
+        cursor: pointer;
+    }
+    #email_Dialog p.disabled{background-color: #eee;}
+    #email_Dialog #oldEmailName{display: none;}
+</style>
+<div id="container_email_list">
+    <h1>Benachrichtigungs-Liste <span style="font-size: 14px;">Gruppe: <?php echo $this->groupName; ?></span></h1>
+    <hr>
+    
+    <div style="margin-bottom: 20px;">
+        <a href="<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Url", "cmd" => "showUrlList", "gid" => $this->groupId)); ?>" style="cursor:pointer;" title="zur&uuml;ck"><span class="glyphicon glyphicon-arrow-left"></span></a>&nbsp;&nbsp;        
+    </div>
+    
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <b>Empf&auml;ngerliste</b>
+            <a id="addEmail" style="float: right; cursor:pointer;"><span class="glyphicon glyphicon-plus-sign"></span> E-Mail</a> &nbsp;&nbsp;
+        </div>
+        <div class="panel-body">
+            <table id="email_table" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th style="display: none;">&nbsp;</th>
+                        <th>E-Mail</th>
+                        <th style="width: 40px;">&nbsp;</th>
+                        <th style="width: 40px;">&nbsp;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach($this->collection as $email): ?>
+                        <tr>
+                            <td class="email_id" style="display: none;"><?php echo $email->getId(); ?></td>
+                            <td class="email_name"><?php echo $email->getValueByKey("name"); ?></td>       
+                            <td><a class="editEmail" href="#"><span class="glyphicon glyphicon-pencil"></span></a></td>
+                            <td><a href="<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "EMailReciever", "gid" => $this->groupId, "cmd" => "deleteEntry", "id" => $email->getId())); ?>" onclick="if(confirm(unescape('Diesen Eintrag wirklich l%F6schen ?'))){ return true;} return false;"><span class="glyphicon glyphicon-trash"></span></a></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<div id="email_Dialog" class="panel panel-default">
+    <div class="panel-heading"><span id="dialogTitle"><b>Neue E-Mail anlegen</b></span><span class="glyphicon glyphicon-remove" <?php if (!isset($this->errors["email"])): ?>onclick="$('#email_Dialog').hide();"<?php else: ?>onclick="self.location.href='<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "EMailReciever", "gid" => $this->groupId, "cmd" => "showEmailList")); ?>';"<?php endif; ?>></span></div>
+    <div class="panel-body">
+        <form id="email_form" class="form-horizontal" role="form" action="#" method="post">
+            <div id="oldEmailName" class="form-group">
+                <label class="col-sm-3 control-label">Alte E-Mail</label>
+                <div class="col-sm-9">
+                    <p class="form-control disabled"></p>
+                </div>
+            </div>
+            <div id="newEmailName" class="form-group <?php if (isset($this->errors["email"])): ?>has-error<?php endif; ?>">
+                <label for="email" class="col-sm-3 control-label">Neue E-Mail</label>
+                <div class="col-sm-9">
+                    <input type="email" class="form-control" id="email" name="email" value="" required="required">
+                </div>
+                <?php if (isset($this->errors["email"])): ?>
+                    <div class="col-sm-offset-3 error">
+                        <?php if ($this->errors["email"][1]): ?><span class="help-block">Pflichtfeld</span><?php endif; ?>
+                        <?php if ($this->errors["email"][2]): ?><span class="help-block">Max. 255 Zeichen</span><?php endif; ?>
+                        <?php if ($this->errors["email"][4]): ?><span class="help-block">Bitte eine korrekte Email-Syntax verwenden</span><?php endif; ?>
+                        <?php if ($this->errors["email"][6]): ?><span class="help-block">Die Email "<?php echo $this->errors["email"][6]["options"]["newEmail"]; ?>" ist bereits eingetragen</span><?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="form-group">
+                <div class="col-sm-offset-3 col-sm-10">
+                    <input type="submit" id="save_btn" class="btn btn-primary" value="speichern">                    
+                    <input type="button" <?php if (!isset($this->errors["email"])): ?>onclick="$('#email_Dialog').hide();"<?php else: ?>onclick="self.location.href='<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "EMailReciever", "gid" => $this->groupId, "cmd" => "showEmailList")); ?>';"<?php endif; ?> class="btn btn-default" value="abbrechen">
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

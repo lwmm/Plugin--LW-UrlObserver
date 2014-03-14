@@ -1,0 +1,158 @@
+<?php if ($this->response > 0): ?>
+    <script>
+        $(document).ready(function() {
+    <?php
+    if ($this->response == 1) {
+        $message = "Eine neue Gruppe wurde erfolgreich angelegt";
+    }
+    if ($this->response == 2) {
+        $message = "Gruppe wurde erfolgreich bearbeitet";
+    }
+    if ($this->response == 3) {
+        $message = "Gruppe wurde erfolgreich gel&ouml;scht";
+    }
+    ?>
+            var data = $('<div style="background-color:#B2EBFD;padding:10px;"><h3 style="color: #175D99;"><?php echo $message; ?></h3></div>');
+            var popup = $('<div id="popup" style="border:2px solid #175D99;">');
+            popup.append(data);
+            $('body').append(popup);
+            popup.css("position", "absolute");
+            popup.css("top", ($(window).height() - popup.height()) / 2 + $(window).scrollTop() + "px");
+            popup.css("left", ($(window).width() - popup.width()) / 2 + $(window).scrollLeft() + "px");
+            popup.hide();
+            popup.fadeIn(1000, 'linear');
+            popup.delay(1500);
+            popup.fadeOut(1000, 'linear');
+        });
+    </script>
+<?php endif; ?>
+    
+<script>
+    $(document).ready(function() {
+        var addUrl = "<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Group", "cmd" => "addEntry")); ?>";
+        var editBaseUrl = "<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Group", "cmd" => "saveEntry")) ?>";
+        
+        $(window).bind("resize", function() {
+            elementResize();
+        });
+        function elementResize() {
+            $("#groupDialog").css("left", (($("#page-wrapper").width() / 2) - $("#groupDialog").width() / 2));
+            $("#groupDialog").css("top", (($("#page-wrapper").height() / 4) - $("#groupDialog").height() / 2));
+        }
+        elementResize();
+        
+        $("#addGroup").click(function(){
+            $("#groupDialog #group_form").attr("action", addUrl);
+            $("#groupDialog #dialogTitle b").html("Neue Gruppe anlegen");
+            $("#groupDialog #oldGroupName").hide();
+            $("#groupDialog").show();
+        });
+        
+        $(".editGroup").click(function(){
+            $("#groupDialog #group_form").attr("action", editBaseUrl + "&id=" + parseInt($(this).closest("tr").find("td.group_id").html()));
+            $("#groupDialog #dialogTitle b").html("Bestehende Gruppe bearbeiten");
+            $("#groupDialog #oldGroupName p").html($(this).closest("tr").find("td.group_name a").html());
+            $("#groupDialog #oldGroupName #show_id").html(parseInt($(this).closest("tr").find("td.group_id").html()));
+            $("#groupDialog #oldGroupName").show();
+            $("#groupDialog").show();
+        });
+        
+        <?php if (isset($this->errors)): ?>
+            <?php if($this->type == "add"): ?>
+                $("#addGroup").trigger("click");
+            <?php endif; ?>
+            <?php if($this->type == "edit"): ?>
+                $("#group_table tbody tr").each(function(){
+                    if(parseInt($(this).find('td.group_id').html()) === <?php echo $this->errors["id"]; ?>){
+                        $(this).find('a.editGroup').trigger("click");
+                    }
+                });
+            <?php endif; ?>
+        <?php endif; ?>
+    });
+</script>
+<style>
+    #groupDialog{
+        position: absolute;
+        top: 200px;
+        left: 200px;
+        width: 600px;
+        display: none;
+    }
+    #groupDialog div.panel-heading span.glyphicon{
+        float: right;
+        cursor: pointer;
+    }
+    #groupDialog p.disabled{background-color: #eee;}
+    #groupDialog #oldGroupName{display: none;}
+</style>
+<div id="container_group_list">
+    <h1>Gruppenliste</h1>
+    <hr>
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <b>Bestehende Gruppen</b>
+            <a id="addGroup" style="float: right; cursor:pointer;"><span class="glyphicon glyphicon-plus-sign"></span> Gruppe</a> &nbsp;&nbsp;
+        </div>
+        <div class="panel-body">
+            <table id="group_table" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">Id</th>
+                        <th>Name</th>
+                        <th style="width: 80px;">Urls</th>
+                        <th style="width: 40px;">&nbsp;</th>
+                        <th style="width: 40px;">&nbsp;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach($this->collection as $group): ?>
+                        <tr>
+                            <td class="group_id"><?php echo $group->getId(); ?></td>
+                            <td class="group_name"><a style="display: block;" href="<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Url", "cmd" => "showUrlList", "gid" => $group->getId())); ?>"><?php echo $group->getValueByKey("name"); ?></td>
+                            <td><?php echo $group->getValueByKey("observed_urls"); ?></td>
+                            <td><a class="editGroup" href="#"><span class="glyphicon glyphicon-pencil"></span></a></td>
+                            <td><a href="<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Group", "cmd" => "deleteEntry", "id" => $group->getId())); ?>" onclick="if(confirm(unescape('Diesen Eintrag wirklich l%F6schen ?'))){ return true;} return false;"><span class="glyphicon glyphicon-trash"></span></a></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<div id="groupDialog" class="panel panel-default">
+    <div class="panel-heading"><span id="dialogTitle"><b>Neue Gruppen anlegen</b></span><span class="glyphicon glyphicon-remove" <?php if (!isset($this->errors["group_name"])): ?>onclick="$('#groupDialog').hide();"<?php else: ?>onclick="self.location.href='<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Group", "cmd" => "showStartPage")); ?>';"<?php endif; ?>></span></div>
+    <div class="panel-body">
+        <form id="group_form" class="form-horizontal" role="form" action="#" method="post">
+            <div id="oldGroupName" class="form-group">
+                <span id="show_id" style="font-size: 10px;">11</span><br>
+                <label class="col-sm-3 control-label">Alter Name</label>
+                <div class="col-sm-9">
+                    <p class="form-control disabled"></p>
+                </div>
+            </div>
+            <div id="newGroupName" class="form-group <?php if (isset($this->errors["group_name"])): ?>has-error<?php endif; ?>">
+                <label for="group_name" class="col-sm-3 control-label">Neuer Name</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="group_name" name="group_name" value="" required="required">
+                </div>
+                <?php if (isset($this->errors["group_name"])): ?>
+                    <div class="col-sm-offset-3 error">
+                        <?php if ($this->errors["group_name"][1]): ?><span class="help-block">Pflichtfeld</span><?php endif; ?>
+                        <?php if ($this->errors["group_name"][2]): ?><span class="help-block">Max. 255 Zeichen</span><?php endif; ?>
+                        <?php if ($this->errors["group_name"][6]): ?><span class="help-block">Der Gruppenname "<?php echo $this->errors["group_name"][6]["options"]["newName"]; ?>" existiert bereits</span><?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="form-group">
+                <div class="col-sm-offset-3 col-sm-10">
+                    <input type="submit" id="save_btn" class="btn btn-primary" value="speichern">                    
+                    <input type="button" <?php if (!isset($this->errors["group_name"])): ?>onclick="$('#groupDialog').hide();"<?php else: ?>onclick="self.location.href='<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Group", "cmd" => "showStartPage")); ?>';"<?php endif; ?> class="btn btn-default" value="abbrechen">
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

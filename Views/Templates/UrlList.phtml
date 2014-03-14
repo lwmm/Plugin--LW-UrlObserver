@@ -1,0 +1,187 @@
+<?php if ($this->response > 0): ?>
+    <script>
+        $(document).ready(function() {
+    <?php
+    if ($this->response == 1) {
+        $message = "Eine neue Url wurde erfolgreich angelegt";
+    }
+    if ($this->response == 2) {
+        $message = "Url wurde erfolgreich bearbeitet";
+    }
+    if ($this->response == 3) {
+        $message = "Url wurde erfolgreich gel&ouml;scht";
+    }
+    ?>
+            var data = $('<div style="background-color:#B2EBFD;padding:10px;"><h3 style="color: #175D99;"><?php echo $message; ?></h3></div>');
+            var popup = $('<div id="popup" style="border:2px solid #175D99;">');
+            popup.append(data);
+            $('body').append(popup);
+            popup.css("position", "absolute");
+            popup.css("top", ($(window).height() - popup.height()) / 2 + $(window).scrollTop() + "px");
+            popup.css("left", ($(window).width() - popup.width()) / 2 + $(window).scrollLeft() + "px");
+            popup.hide();
+            popup.fadeIn(1000, 'linear');
+            popup.delay(1500);
+            popup.fadeOut(1000, 'linear');
+        });
+    </script>
+<?php endif; ?>
+    
+<script>
+    $(document).ready(function() {
+        var addUrl = "<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Url", "gid" => $this->groupId, "cmd" => "addEntry")); ?>";
+        var editBaseUrl = "<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Url", "gid" => $this->groupId, "cmd" => "saveEntry")) ?>";
+        
+        $(window).bind("resize", function() {
+            elementResize();
+        });
+        function elementResize() {
+            $("#urlDialog").css("left", (($("#page-wrapper").width() / 2) - $("#urlDialog").width() / 2));
+            $("#urlDialog").css("top", (($("#page-wrapper").height() / 4) - $("#urlDialog").height() / 2));
+        }
+        elementResize();
+        
+        $("#addUrl").click(function(){
+            $("#urlDialog #url_form").attr("action", addUrl);
+            $("#urlDialog #dialogTitle b").html("Neue Url anlegen");
+            $("#urlDialog #oldUrlName").hide();
+            $("#urlDialog #newUrlName #url").val("");
+            $("#urlDialog").show();
+            $("#urlDialog #reachableUrl #reachable").trigger("click");
+        });
+        
+        $(".editUrl").click(function(){
+            $("#urlDialog #url_form").attr("action", editBaseUrl + "&id=" + parseInt($(this).closest("tr").find("td.url_id").html()));
+            $("#urlDialog #dialogTitle b").html("Bestehende Url bearbeiten");
+            $("#urlDialog #oldUrlName p").html($(this).closest("tr").find("td.url_name").html());
+            $("#urlDialog #newUrlName #url").val($(this).closest("tr").find("td.url_name").html());
+            $("#urlDialog #oldUrlName").show();
+            $("#urlDialog").show();            
+            
+            if($(this).closest("tr").find("td.url_reachable span").hasClass("glyphicon-ok")){
+                $("#urlDialog #reachableUrl #reachable").trigger("click");
+            } else {
+                $("#urlDialog #reachableUrl #not_reachable").trigger("click");
+            }
+        });
+        
+        <?php if (isset($this->errors)): ?>
+            <?php if($this->type == "add"): ?>
+                $("#addUrl").trigger("click");
+            <?php endif; ?>
+            <?php if($this->type == "edit"): ?>
+                $("#url_table tbody tr").each(function(){
+                    if(parseInt($(this).find('td.url_id').html()) === <?php echo $this->errors["id"]; ?>){
+                        $(this).find('a.editUrl').trigger("click");
+                    }
+                });
+            <?php endif; ?>
+        <?php endif; ?>
+    });
+</script>
+<style>
+    #urlDialog{
+        position: absolute;
+        top: 200px;
+        left: 200px;
+        width: 600px;
+        display: none;
+    }
+    #urlDialog div.panel-heading span.glyphicon{
+        float: right;
+        cursor: pointer;
+    }
+    #urlDialog p.disabled{background-color: #eee;}
+    #urlDialog #oldUrlName{display: none;}
+</style>
+<div id="container_url_list">
+    <h1>Url-Liste <span style="font-size: 14px;">Gruppe: <?php echo $this->groupName; ?></span></h1>
+    <hr>
+    
+    <div style="margin-bottom: 20px;">
+        <a href="<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Group", "cmd" => "showStartPage")); ?>" style="cursor:pointer;" title="zur&uuml;ck"><span class="glyphicon glyphicon-arrow-left"></span></a>&nbsp;&nbsp;        
+    </div>
+    
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <b>&Uuml;berwachte Urls</b>
+            <a id="addUrl" style="float: right; cursor:pointer;"><span class="glyphicon glyphicon-plus-sign"></span> Url</a> &nbsp;&nbsp;
+            <a href="<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "EMailReciever", "cmd" => "showEmailList", "gid" => $this->groupId)); ?>" id="urlConfig" style="float: right; cursor:pointer;margin-right: 50px;"><span class="glyphicon glyphicon-wrench"></span> Konfiguration</a> &nbsp;&nbsp;
+        </div>
+        <div class="panel-body">
+            <table id="url_table" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th style="display: none;">&nbsp;</th>
+                        <th>Url</th>
+                        <th>erwartete Erreichbarkeit</th>
+                        <th style="width: 40px;">&nbsp;</th>
+                        <th style="width: 40px;">&nbsp;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach($this->collection as $url): ?>
+                        <tr>
+                            <td class="url_id" style="display: none;"><?php echo $url->getId(); ?></td>
+                            <td class="url_name"><?php echo $url->getValueByKey("url"); ?></td>
+                            <td class="url_reachable">
+                                <?php
+                                if($url->getValueByKey("opt1bool") > 0){
+                                    echo "<span style='color:green;' class='glyphicon glyphicon-ok' ></span>";
+                                }else{
+                                    echo "<span style='color:darkred;' class='glyphicon glyphicon-remove' ></span>";
+                                }
+                                ?>
+                            </td>
+                            <td><a class="editUrl" href="#"><span class="glyphicon glyphicon-pencil"></span></a></td>
+                            <td><a href="<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Url", "gid" => $this->groupId, "cmd" => "deleteEntry", "id" => $url->getId())); ?>" onclick="if(confirm(unescape('Diesen Eintrag wirklich l%F6schen ?'))){ return true;} return false;"><span class="glyphicon glyphicon-trash"></span></a></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<div id="urlDialog" class="panel panel-default">
+    <div class="panel-heading"><span id="dialogTitle"><b>Neue Url anlegen</b></span><span class="glyphicon glyphicon-remove" <?php if (!isset($this->errors["url"])): ?>onclick="$('#urlDialog').hide();"<?php else: ?>onclick="self.location.href='<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Url", "gid" => $this->groupId, "cmd" => "showUrlList")); ?>';"<?php endif; ?>></span></div>
+    <div class="panel-body">
+        <form id="url_form" class="form-horizontal" role="form" action="#" method="post">
+            <div id="oldUrlName" class="form-group">
+                <label class="col-sm-3 control-label">Alte Url</label>
+                <div class="col-sm-9">
+                    <p class="form-control disabled"></p>
+                </div>
+            </div>
+            <div id="newUrlName" class="form-group <?php if (isset($this->errors["url"])): ?>has-error<?php endif; ?>">
+                <label for="url" class="col-sm-3 control-label">Neue Url</label>
+                <div class="col-sm-9">
+                    <input type="url" class="form-control" id="url" name="url" value="" required="required">
+                </div>
+                <?php if (isset($this->errors["url"])): ?>
+                    <div class="col-sm-offset-3 error">
+                        <?php if ($this->errors["url"][1]): ?><span class="help-block">Pflichtfeld</span><?php endif; ?>
+                        <?php if ($this->errors["url"][2]): ?><span class="help-block">Max. 255 Zeichen</span><?php endif; ?>
+                        <?php if ($this->errors["url"][4]): ?><span class="help-block">Bitte eine korrekte Url-Syntax verwenden</span><?php endif; ?>
+                        <?php if ($this->errors["url"][6]): ?><span class="help-block">Die Url "<?php echo $this->errors["url"][6]["options"]["newUrl"]; ?>" wird bereits &uuml;berwacht</span><?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div id="reachableUrl" class="form-group <?php if (isset($this->errors["reachable"])): ?>has-error<?php endif; ?>">                
+                <label class="col-sm-3 control-label">Die Url soll ... </label>
+                <div class="col-sm-9">
+                    <div class="radio"><label><input type="radio" name="reachable" id="reachable" value="1" checked="checked"> ... erreichbar sein</label></div>
+                    <div class="radio"><label><input type="radio" name="reachable" id="not_reachable" value="0"> ... nicht erreichbar sein</label></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-sm-offset-3 col-sm-10">
+                    <input type="submit" id="save_btn" class="btn btn-primary" value="speichern">                    
+                    <input type="button" <?php if (!isset($this->errors["url"])): ?>onclick="$('#urlDialog').hide();"<?php else: ?>onclick="self.location.href='<?php echo \lw_page::getInstance()->getUrl(array("plugin" => "LwUrlObserver", "controller" => "Url", "gid" => $this->groupId, "cmd" => "showUrlList")); ?>';"<?php endif; ?> class="btn btn-default" value="abbrechen">
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
