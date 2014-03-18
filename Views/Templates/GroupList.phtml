@@ -52,7 +52,6 @@
             $("#groupDialog #group_form").attr("action", editBaseUrl + "&id=" + parseInt($(this).closest("tr").find("td.group_id").html()));
             $("#groupDialog #dialogTitle b").html("Bestehende Gruppe bearbeiten");
             $("#groupDialog #oldGroupName p").html($(this).closest("tr").find("td.group_name a").html());
-            $("#groupDialog #oldGroupName #show_id").html(parseInt($(this).closest("tr").find("td.group_id").html()));
             $("#groupDialog #oldGroupName").show();
             $("#groupDialog").show();
         });
@@ -128,7 +127,6 @@
     <div class="panel-body">
         <form id="group_form" class="form-horizontal" role="form" action="#" method="post">
             <div id="oldGroupName" class="form-group">
-                <span id="show_id" style="font-size: 10px;">11</span><br>
                 <label class="col-sm-3 control-label">Alter Name</label>
                 <div class="col-sm-9">
                     <p class="form-control disabled"></p>
